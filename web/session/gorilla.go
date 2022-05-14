@@ -1,6 +1,7 @@
 package session
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -19,14 +20,19 @@ func sessionTransaction(req *http.Request, w http.ResponseWriter, exec func(sess
 	}
 }
 
-func StoreSession(req *http.Request, w http.ResponseWriter, token string) {
+func StoreSession(w http.ResponseWriter, req *http.Request, token string) {
 	sessionTransaction(req, w, func(session *sessions.Session) {
 		session.Values["token"] = token
 	})
 }
 
-func GetSession(req *http.Request, w http.ResponseWriter) (token string) {
+func GetSession(w http.ResponseWriter, req *http.Request) (token string, err error) {
 	sessionTransaction(req, w, func(session *sessions.Session) {
+		if _, ok := session.Values["token"]; !ok {
+			err = fmt.Errorf("session not found")
+			return
+		}
+		err = nil
 		token = session.Values["token"].(string)
 	})
 	return

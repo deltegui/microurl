@@ -2,7 +2,9 @@ package web
 
 import (
 	"microurl/internal"
+	"microurl/web/session"
 	"net/http"
+	"strings"
 
 	phx "github.com/deltegui/phoenix"
 )
@@ -40,6 +42,8 @@ type loginPresenter struct {
 }
 
 func (presenter loginPresenter) Present(data interface{}) {
+	res := data.(internal.LoginResponse)
+	session.StoreSession(presenter.w, presenter.r, res.Token.Value)
 	presenter.login.Redirect(
 		presenter.w,
 		presenter.r,
@@ -48,22 +52,32 @@ func (presenter loginPresenter) Present(data interface{}) {
 }
 
 func (presenter loginPresenter) PresentError(err error) {
+	caseErr := err.(internal.UseCaseError)
+	msg := strings.ReplaceAll(caseErr.Reason, "\n", "<br />")
 	presenter.login.Render(presenter.w, LoginViewModel{
 		Name:         "",
 		HadError:     true,
-		ErrorMessage: err.Error(),
+		ErrorMessage: msg,
 	})
 }
 
 func LoginHandler(loginCase internal.UseCase) http.HandlerFunc {
 	loginRenderer := phx.NewHTMLRenderer(LoginViewConfig)
 	return func(w http.ResponseWriter, req *http.Request) {
-		req.ParseForm()
 		presenter := loginPresenter{
 			login: loginRenderer,
 			w:     w,
 			r:     req,
 		}
+		if _, err := session.GetSession(w, req); err == nil {
+			presenter.login.Redirect(
+				presenter.w,
+				presenter.r,
+				"/panel",
+				http.StatusTemporaryRedirect)
+			return
+		}
+		req.ParseForm()
 		loginCase.Exec(presenter, internal.LoginRequest{
 			Name:     req.Form.Get("name"),
 			Password: req.Form.Get("password"),

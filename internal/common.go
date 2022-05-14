@@ -1,6 +1,11 @@
 package internal
 
-import "log"
+import (
+	"fmt"
+	"log"
+
+	"github.com/deltegui/phoenix/validator"
+)
 
 type Presenter interface {
 	Present(data interface{})
@@ -17,7 +22,7 @@ type UseCase interface {
 }
 
 type Validator interface {
-	Validate(interface{}) ([]string, error)
+	Validate(interface{}) (validator.ValidationResult, error)
 }
 
 type RequestValidator struct {
@@ -38,12 +43,25 @@ func (reqVal RequestValidator) Exec(p Presenter, req UseCaseRequest) {
 		log.Printf("Error validating request: %s\n", err)
 		return
 	}
-	if len(valErrs) != 0 {
-		p.PresentError(UseCaseError{
-			Code:   0,
-			Reason: valErrs[0],
-		})
+	if len(valErrs) == 0 {
+		reqVal.inner.Exec(p, req)
 		return
 	}
-	reqVal.inner.Exec(p, req)
+	p.PresentError(UseCaseError{
+		Code:   0,
+		Reason: createErrorMessage(valErrs),
+	})
+}
+
+func createErrorMessage(errs validator.ValidationResult) string {
+	message := ""
+	for _, valErr := range errs {
+		current := fmt.Sprintf("Error at '%s' field: %s.", valErr.Field, valErr.Tag)
+		if message == "" {
+			message = current
+		} else {
+			message = fmt.Sprintf("%s\n%s", message, current)
+		}
+	}
+	return message
 }

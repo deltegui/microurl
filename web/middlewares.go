@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"microurl/internal"
+	"microurl/web/session"
 	"net/http"
 	"strings"
 	"time"
@@ -41,13 +42,13 @@ func NewJWTAuth(tokenizer internal.Tokenizer) JWTAuth {
 // valid JWT bearer token.
 func (authMiddle JWTAuth) Authorize(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		authMiddle.handleAndCheckToken(w, req, next, func(role temsys.Role) error { return nil })
+		authMiddle.handleAndCheckToken(w, req, next)
 	})
 }
 
 func (authMiddle JWTAuth) handleAndCheckToken(w http.ResponseWriter, req *http.Request, next http.Handler) {
 	presenter := phoenix.NewJSONPresenter(w)
-	token, err := authMiddle.getToken(req)
+	token, err := authMiddle.getToken(w, req)
 	if err != nil {
 		presenter.PresentError(err)
 		return
@@ -60,9 +61,12 @@ func (authMiddle JWTAuth) handleAndCheckToken(w http.ResponseWriter, req *http.R
 	next.ServeHTTP(w, req.WithContext(ctx))
 }
 
-func (authMiddle JWTAuth) getToken(req *http.Request) (internal.Token, error) {
+func (authMiddle JWTAuth) getToken(w http.ResponseWriter, req *http.Request) (internal.Token, error) {
 	const bearerPrefix string = "Bearer "
-	bearerToken := req.Header.Get("Authorization")
+	bearerToken, err := session.GetSession(w, req)
+	if err != nil {
+		return internal.Token{}, internal.NotAuthErr
+	}
 	if len(bearerToken) == 0 || !strings.HasPrefix(bearerToken, bearerPrefix) {
 		return internal.Token{}, internal.NotAuthErr
 	}

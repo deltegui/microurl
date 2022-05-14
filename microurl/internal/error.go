@@ -6,6 +6,14 @@ import "fmt"
 type UseCaseError struct {
 	Code   uint64
 	Reason string
+	args   map[string]string
+}
+
+func (caseErr UseCaseError) Get(key string) (string, error) {
+	if value, ok := caseErr.args[key]; ok {
+		return value, nil
+	}
+	return "", fmt.Errorf("not found")
 }
 
 func (caseErr UseCaseError) Error() string {
@@ -19,12 +27,37 @@ var (
 	UpdateErr           = UseCaseError{Code: 002, Reason: "Error while updating your data"}
 )
 
+func ValidationErr(reason string) UseCaseError {
+	return UseCaseError{
+		Code:   003,
+		Reason: reason,
+	}
+}
+
 // Users errors
-var (
-	UserNotFoundErr     = UseCaseError{Code: 100, Reason: "User not found"}
-	InvalidPasswordErr  = UseCaseError{Code: 101, Reason: "Invalid password"}
-	UserAlreadyExitsErr = UseCaseError{Code: 102, Reason: "User already exits"}
-)
+func UserNotFoundErr(name string) UseCaseError {
+	return UseCaseError{
+		Code:   100,
+		Reason: fmt.Sprintf("User '%s' not found", name),
+		args:   map[string]string{"Name": name},
+	}
+}
+
+func InvalidPasswordErr(name string) UseCaseError {
+	return UseCaseError{
+		Code:   101,
+		Reason: fmt.Sprintf("Invalid password for user '%s'", name),
+		args:   map[string]string{"Name": name},
+	}
+}
+
+func UserAlreadyExitsErr(name string) UseCaseError {
+	return UseCaseError{
+		Code:   102,
+		Reason: fmt.Sprintf("User '%s' already exits", name),
+		args:   map[string]string{"Name": name},
+	}
+}
 
 // Token errors
 var (

@@ -14,10 +14,11 @@ type TLSConfig struct {
 }
 
 type Configuration struct {
-	ListenURL string `paramName:"url"`
-	JWTKey    string `paramName:"jwt"`
-	DB        DBConfig
-	TLS       TLSConfig
+	ListenURL  string `paramName:"url"`
+	JWTKey     string `paramName:"jwt"`
+	SessionKey string `paramName:"session"`
+	DB         DBConfig
+	TLS        TLSConfig
 }
 
 func Load() Configuration {
