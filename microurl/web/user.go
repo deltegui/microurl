@@ -33,13 +33,8 @@ func LoginPresenter(w http.ResponseWriter, req *http.Request, ctx Ctx, render vi
 			http.Redirect(w, req, "/panel", http.StatusMovedPermanently)
 			return
 		}
-		name := ""
 		caseErr := err.(internal.UseCaseError)
-		if n, err := caseErr.Get("Name"); err == nil {
-			name = n
-		}
 		render(w, views.LoginModel{
-			Name:     name,
 			HadError: true,
 			Error:    caseErr.Reason,
 		})

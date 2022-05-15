@@ -12,18 +12,6 @@ type User struct {
 	Password string
 }
 
-func usersToDomain(models []User) []internal.User {
-	users := make([]internal.User, len(models))
-	for i := 0; i < len(models); i++ {
-		current := models[i]
-		users[i] = internal.User{
-			Name:     current.Name,
-			Password: current.Password,
-		}
-	}
-	return users
-}
-
 type GormUserRepository struct {
 	conn Connection
 }
@@ -45,7 +33,6 @@ func (repo GormUserRepository) Save(user internal.User) error {
 		Name:     model.Name,
 		Password: model.Password,
 	})
-
 	return nil
 }
 
@@ -73,14 +60,5 @@ func (repo GormUserRepository) Delete(name string) error {
 	var model User
 	result := repo.conn.db.Delete(&model, "name = ?", name)
 	return result.Error
-}
-
-func (repo GormUserRepository) GetAll() []internal.User {
-	var users []User
-	result := repo.conn.db.Find(&users)
-	if result.Error != nil {
-		return []internal.User{}
-	}
-	return usersToDomain(users)
 }
 */

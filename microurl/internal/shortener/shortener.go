@@ -1,23 +1,28 @@
 package shortener
 
 import (
-	"fmt"
-	"strconv"
+	"math"
 )
 
 var alphabet = []rune{
 	'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i',
 	'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
-	's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '1',
-	'2', '3', '4', '5', '6', '7', '8', '9', '0',
+	's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A',
+	'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
+	'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
+	'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1',
+	'2', '3', '4', '5', '6', '7', '8', '9',
 }
 
 var mod = len(alphabet)
 
-type Custom struct{}
+type Base62 struct{}
 
-func (hasher Custom) Shorten(id int) string {
+func (hasher Base62) Shorten(id int) string {
 	digits := []int{}
+	if id == 0 {
+		return "a"
+	}
 	for id > 0 {
 		rem := id % mod
 		digits = append(digits, rem)
@@ -27,7 +32,7 @@ func (hasher Custom) Shorten(id int) string {
 	return mapDigits(digits)
 }
 
-func reverse(arr []int) {
+func reverse[T comparable](arr []T) {
 	for i, n := range arr {
 		j := len(arr) - 1 - i
 		if i == j {
@@ -47,29 +52,34 @@ func mapDigits(arr []int) string {
 	return string(out)
 }
 
-func (hasher Custom) Unwrap(shorten string) (int, error) {
+func (hasher Base62) Unwrap(shorten string) (int, error) {
 	result, err := mapString(shorten)
 	if err != nil {
 		return 0, err
 	}
-	str := ""
+	out := 0
 	for _, n := range result {
-		str = fmt.Sprintf("%s%d", str, n)
+		out += n
 	}
-	return strconv.Atoi(str)
+	return out, nil
 }
 
 func mapString(str string) ([]int, error) {
 	in := []rune(str)
+	reverse(in)
 	out := []int{}
 	for pos, urlChar := range in {
 		for i, char := range alphabet {
 			if char == urlChar {
-				out = append(out, i*mod^pos)
+				pow := intPow(mod, pos)
+				out = append(out, i*pow)
 				break
 			}
-			return nil, fmt.Errorf("malformed url string")
 		}
 	}
 	return out, nil
+}
+
+func intPow(x, y int) int {
+	return int(math.Pow(float64(x), float64(y)))
 }

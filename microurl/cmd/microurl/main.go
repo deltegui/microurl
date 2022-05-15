@@ -21,7 +21,8 @@ import (
 
 func main() {
 	ctx := wire()
-	router := createRouter(ctx)
+	router := createRouter()
+	mount(ctx, router)
 	log.Println("Listening on :3000")
 	if err := http.ListenAndServe(":3000", router); err != nil {
 		log.Fatalln("Error while creating server")
@@ -41,26 +42,30 @@ func wire() web.Ctx {
 	conn.MigrateAll()
 	val := validator.New()
 	userRepo := persistence.NewGormUserRepository(conn)
+	urlRepo := persistence.NewGormURLRepository(conn)
 	hasher := phxHash.BcryptHasher{}
-	shortHasher := shortener.Custom{}
+	shortHasher := shortener.Base62{}
 	tokenizer := token.New(conf.JWTKey)
 	sessionManager := session.New(conf.SessionKey)
 	return web.Ctx{
 		Session: sessionManager,
 		Auth:    web.NewSessionJWTAuth(tokenizer, redirectToRoot, sessionManager),
 		Login:   internal.NewLoginCase(val, userRepo, hasher, tokenizer),
-		Shorten: internal.NewShortenCase(val, userRepo, shortHasher),
+		Shorten: internal.NewShortenCase(val, userRepo, urlRepo, shortHasher),
 	}
 }
 
-func createRouter(ctx web.Ctx) chi.Router {
+func createRouter() chi.Router {
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.Timeout(60 * time.Second))
+	return router
+}
+
+func mount(ctx web.Ctx, router chi.Router) {
 	router.Mount("/", web.CreateUserRoutes(ctx))
 	router.Mount("/panel", web.CreatePanelRoutes(ctx))
-	return router
 }

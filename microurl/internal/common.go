@@ -10,17 +10,13 @@ import (
 type UseCaseRequest interface{}
 type UseCaseResponse interface{}
 
-var EmptyRequest UseCaseRequest = struct{}{}
-
-var NoResponse UseCaseResponse = struct{}{}
+var (
+	EmptyRequest UseCaseRequest  = struct{}{}
+	NoResponse   UseCaseResponse = struct{}{}
+)
 
 type UseCase interface {
 	Exec(UseCaseRequest) (UseCaseResponse, error)
-}
-
-type PasswordHasher interface {
-	Hash(str string) string
-	Check(hash, str string) bool
 }
 
 type Validator interface {

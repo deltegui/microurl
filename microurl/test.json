@@ -4,11 +4,9 @@
     "SessionKey": "blablamykeyblabla",
     "DB": {
         "Driver": "sqlite",
-        "Conn": "dev.db"
+        "Conn": "test.db"
     },
     "TLS": {
-        "KEY": "../server.key",
-        "CRT": "../server.crt",
         "Enabled": false
     }
 }

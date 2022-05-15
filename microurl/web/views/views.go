@@ -43,7 +43,6 @@ var (
 )
 
 type LoginModel struct {
-	Name     string
 	HadError bool
 	Error    string
 }

@@ -6,14 +6,6 @@ import "fmt"
 type UseCaseError struct {
 	Code   uint64
 	Reason string
-	args   map[string]string
-}
-
-func (caseErr UseCaseError) Get(key string) (string, error) {
-	if value, ok := caseErr.args[key]; ok {
-		return value, nil
-	}
-	return "", fmt.Errorf("not found")
 }
 
 func (caseErr UseCaseError) Error() string {
@@ -39,7 +31,6 @@ func UserNotFoundErr(name string) UseCaseError {
 	return UseCaseError{
 		Code:   100,
 		Reason: fmt.Sprintf("User '%s' not found", name),
-		args:   map[string]string{"Name": name},
 	}
 }
 
@@ -47,7 +38,6 @@ func InvalidPasswordErr(name string) UseCaseError {
 	return UseCaseError{
 		Code:   101,
 		Reason: fmt.Sprintf("Invalid password for user '%s'", name),
-		args:   map[string]string{"Name": name},
 	}
 }
 
@@ -55,7 +45,6 @@ func UserAlreadyExitsErr(name string) UseCaseError {
 	return UseCaseError{
 		Code:   102,
 		Reason: fmt.Sprintf("User '%s' already exits", name),
-		args:   map[string]string{"Name": name},
 	}
 }
 
