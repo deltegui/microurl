@@ -2,7 +2,6 @@ package persistence_test
 
 import (
 	"microurl/internal"
-	"microurl/internal/persistence"
 	"microurl/testutils"
 	"testing"
 )
@@ -42,12 +41,12 @@ func TestShouldInsertURLEntries(t *testing.T) {
 				{
 					ID:       2,
 					Original: "https://youtube.com/xasfhasd",
-					Owner:    "manolo",
+					Owner:    "paola",
 				},
 				{
 					ID:       3,
 					Original: "https://manolo.com/manolo",
-					Owner:    "manolo",
+					Owner:    "ambrosio",
 				},
 			},
 			insertions: []internal.URL{
@@ -59,19 +58,19 @@ func TestShouldInsertURLEntries(t *testing.T) {
 				{
 					ID:       0,
 					Original: "https://youtube.com/xasfhasd",
-					Owner:    "manolo",
+					Owner:    "paola",
 				},
 				{
 					ID:       0,
 					Original: "https://manolo.com/manolo",
-					Owner:    "manolo",
+					Owner:    "ambrosio",
 				},
 			},
 		},
 	}
 	for _, current := range cases {
 		t.Run(current.name, func(t *testing.T) {
-			testutils.DBTransaction(func(conn persistence.Connection, populator testutils.Populator) {
+			testutils.DBTransaction(func(populator testutils.Populator) {
 				populator.PopulateUsers()
 				for _, insert := range current.insertions {
 					if err := populator.URLRepo.Save(&insert); err != nil {
@@ -87,6 +86,46 @@ func TestShouldInsertURLEntries(t *testing.T) {
 					}
 					if url != expected {
 						t.Error("Expected url", current.url, ", but have ", url)
+					}
+				}
+			})
+		})
+	}
+}
+
+func TestShouldDeleteUrls(t *testing.T) {
+	type data struct {
+		name             string
+		exptectedMissing []internal.URL
+	}
+	cases := []data{
+		{
+			name: "should delte one element",
+			exptectedMissing: []internal.URL{
+				{
+					ID:       2,
+					Original: "https://hello.com/hola",
+					Owner:    "manolo",
+				},
+			},
+		},
+	}
+	for _, current := range cases {
+		t.Run(current.name, func(t *testing.T) {
+			testutils.DBTransaction(func(populator testutils.Populator) {
+				populator.PopulateAll()
+				for _, url := range current.exptectedMissing {
+					if err := populator.URLRepo.Delete(url); err != nil {
+						t.Error(err)
+						return
+
+					}
+				}
+				for _, expected := range current.exptectedMissing {
+					_, err := populator.URLRepo.FindByID(int(expected.ID))
+					if err == nil {
+						t.Error("Expected url", expected, "to be deleted")
+						return
 					}
 				}
 			})

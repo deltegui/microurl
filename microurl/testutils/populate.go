@@ -26,12 +26,32 @@ var users = []internal.User{
 		Name:     "manolo",
 		Password: "$2a$10$CgHCJHQNLHNlqFD5zy0dJOH1XTMLLmi4DPB6rd1vnEwwFGrcH/1QO",
 	},
+	{
+		Name:     "ambrosio",
+		Password: "$2a$10$.k95rpYLCwSI3gqJzgHgG.xuuyzyBQHfgQfqjTfB/JdzuhRTTb.S2",
+	},
+	{
+		Name:     "paola",
+		Password: "$2a$10$Ep1jgVKZE7GB.xJzdryxXOOEuI0lM8W2A18cxxmkhYIS.hfCAdL4G",
+	},
 }
 
 var urls = []internal.URL{
 	{
 		Original: "http://youtube.com/hola",
 		Owner:    "manolo",
+	},
+	{
+		Original: "https://hello.com/hola",
+		Owner:    "manolo",
+	},
+	{
+		Original: "https://youtube.com/xasfhasd",
+		Owner:    "paola",
+	},
+	{
+		Original: "https://manolo.com/manolo",
+		Owner:    "ambrosio",
 	},
 }
 
@@ -77,9 +97,9 @@ func populate[T any](elements []T, save func(T) error) {
 	}
 }
 
-func DBTransaction(test func(persistence.Connection, Populator)) {
+func DBTransaction(test func(Populator)) {
 	conf := loadTestConfig()
 	conn := persistence.Connect(conf)
 	conn.MigrateAll()
-	test(conn, newPopulator(conn))
+	test(newPopulator(conn))
 }
