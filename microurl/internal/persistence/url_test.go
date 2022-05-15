@@ -9,28 +9,87 @@ import (
 
 func TestShouldInsertURLEntries(t *testing.T) {
 	type data struct {
-		name string
-		url  internal.URL
+		name       string
+		url        []internal.URL
+		insertions []internal.URL
 	}
-	runTest := func(current data) {
+	cases := []data{
+		{
+			name: "should insert one element",
+			url: []internal.URL{
+				{
+					ID:       1,
+					Original: "https://hello.com/hola",
+					Owner:    "manolo",
+				},
+			},
+			insertions: []internal.URL{
+				{
+					ID:       0,
+					Original: "https://hello.com/hola",
+					Owner:    "manolo",
+				},
+			},
+		},
+		{
+			name: "should insert many element",
+			url: []internal.URL{
+				{
+					ID:       1,
+					Original: "https://hello.com/hola",
+					Owner:    "manolo",
+				},
+				{
+					ID:       2,
+					Original: "https://youtube.com/xasfhasd",
+					Owner:    "manolo",
+				},
+				{
+					ID:       3,
+					Original: "https://manolo.com/manolo",
+					Owner:    "manolo",
+				},
+			},
+			insertions: []internal.URL{
+				{
+					ID:       0,
+					Original: "https://hello.com/hola",
+					Owner:    "manolo",
+				},
+				{
+					ID:       0,
+					Original: "https://youtube.com/xasfhasd",
+					Owner:    "manolo",
+				},
+				{
+					ID:       0,
+					Original: "https://manolo.com/manolo",
+					Owner:    "manolo",
+				},
+			},
+		},
+	}
+	for _, current := range cases {
 		t.Run(current.name, func(t *testing.T) {
-			testutils.DBTransaction(func(conn persistence.Connection) {
-				repo := persistence.NewGormURLRepository(conn)
-				if err := repo.Save(&current.url); err != nil {
-					t.Error(err)
+			testutils.DBTransaction(func(conn persistence.Connection, populator testutils.Populator) {
+				populator.PopulateUsers()
+				for _, insert := range current.insertions {
+					if err := populator.URLRepo.Save(&insert); err != nil {
+						t.Error(err)
+						return
+					}
 				}
-				url, err := repo.FindByID(int(current.url.ID))
-				if err != nil {
-					t.Error(err)
-				}
-				if url != current.url {
-					t.Error("Expected url ", current.url, " to be equal to ", url)
+				for _, expected := range current.url {
+					url, err := populator.URLRepo.FindByID(int(expected.ID))
+					if err != nil {
+						t.Error(err)
+						return
+					}
+					if url != expected {
+						t.Error("Expected url", current.url, ", but have ", url)
+					}
 				}
 			})
 		})
-	}
-	cases := []data{}
-	for _, c := range cases {
-		runTest(c)
 	}
 }
