@@ -15,58 +15,79 @@ type ctxKey string
 
 const UserCtxKey ctxKey = "user"
 
-// OptionsCors creates a middleware that handles all request using
-// Options method and returns 204. This is used to return all
-// CORS headers.
-func OptionsCors(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if req.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		next.ServeHTTP(w, req)
-	})
-}
+type tokenGetter func(w http.ResponseWriter, req *http.Request) (internal.Token, error)
 
-// JWTAuth middleware to check using a JWT Bearer token if user is authorized or is admin.
+type PresenterCreator func(w http.ResponseWriter, req *http.Request) phoenix.Present
+
 type JWTAuth struct {
-	tokenizer internal.Tokenizer
+	tokenizer       internal.Tokenizer
+	createPresenter func(w http.ResponseWriter, req *http.Request) phoenix.Present
 }
 
-// NewJWTAuth create JWTAuth middleware.
-func NewJWTAuth(tokenizer internal.Tokenizer) JWTAuth {
-	return JWTAuth{tokenizer}
-}
-
-// Authorize middleware that checks if exists the header 'Authorization' with
-// valid JWT bearer token.
-func (authMiddle JWTAuth) Authorize(next http.HandlerFunc) http.HandlerFunc {
+func (authMiddle JWTAuth) createHandler(next http.Handler, getToken tokenGetter) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		authMiddle.handleAndCheckToken(w, req, next)
+		authMiddle.handleAndCheckToken(w, req, next, getToken)
 	})
 }
 
-func (authMiddle JWTAuth) handleAndCheckToken(w http.ResponseWriter, req *http.Request, next http.Handler) {
-	presenter := phoenix.NewJSONPresenter(w)
-	token, err := authMiddle.getToken(w, req)
+func (authMiddle JWTAuth) handleAndCheckToken(w http.ResponseWriter, req *http.Request, next http.Handler, getToken tokenGetter) {
+	present := authMiddle.createPresenter(w, req)
+	token, err := getToken(w, req)
 	if err != nil {
-		presenter.PresentError(err)
+		present(nil, err)
 		return
 	}
 	if token.Expires.Before(time.Now()) {
-		presenter.PresentError(internal.ExpiredTokenErr)
+		present(nil, internal.ExpiredTokenErr)
 		return
 	}
 	ctx := context.WithValue(req.Context(), UserCtxKey, token.Owner)
 	next.ServeHTTP(w, req.WithContext(ctx))
 }
 
-func (authMiddle JWTAuth) getToken(w http.ResponseWriter, req *http.Request) (internal.Token, error) {
-	const bearerPrefix string = "Bearer "
-	bearerToken, err := session.GetSession(w, req)
+type SessionJWTAuth struct {
+	JWTAuth
+	session session.Manager
+}
+
+func NewSessionJWTAuth(tokenizer internal.Tokenizer, createPresenter PresenterCreator, manager session.Manager) SessionJWTAuth {
+	return SessionJWTAuth{
+		JWTAuth{tokenizer, createPresenter},
+		manager,
+	}
+}
+
+func (authMiddle SessionJWTAuth) Authorize(next http.Handler) http.Handler {
+	return authMiddle.createHandler(next, authMiddle.getToken)
+}
+
+func (authMiddle SessionJWTAuth) getToken(w http.ResponseWriter, req *http.Request) (internal.Token, error) {
+	rawToken, err := authMiddle.session.Get(w, req)
 	if err != nil {
 		return internal.Token{}, internal.NotAuthErr
 	}
+	token, err := authMiddle.tokenizer.Decode(rawToken)
+	if err != nil {
+		return internal.Token{}, internal.InvalidTokenErr
+	}
+	return token, nil
+}
+
+type HeaderJWTAuth struct {
+	JWTAuth
+}
+
+func NewHeaderJWTAuth(tokenizer internal.Tokenizer, createPresenter PresenterCreator, manager session.Manager) HeaderJWTAuth {
+	return HeaderJWTAuth{JWTAuth{tokenizer, createPresenter}}
+}
+
+func (authMiddle HeaderJWTAuth) Authorize(next http.Handler) http.Handler {
+	return authMiddle.createHandler(next, authMiddle.getToken)
+}
+
+func (authMiddle HeaderJWTAuth) getToken(w http.ResponseWriter, req *http.Request) (internal.Token, error) {
+	bearerToken := req.Header.Get("Authorization")
+	const bearerPrefix string = "Bearer "
 	if len(bearerToken) == 0 || !strings.HasPrefix(bearerToken, bearerPrefix) {
 		return internal.Token{}, internal.NotAuthErr
 	}
@@ -76,4 +97,5 @@ func (authMiddle JWTAuth) getToken(w http.ResponseWriter, req *http.Request) (in
 		return internal.Token{}, internal.InvalidTokenErr
 	}
 	return token, nil
+
 }

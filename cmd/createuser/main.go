@@ -15,16 +15,6 @@ import (
 
 var reader *bufio.Reader = bufio.NewReader(os.Stdin)
 
-type CLIPresenter struct{}
-
-func (cli CLIPresenter) Present(data interface{}) {
-	fmt.Println(data)
-}
-
-func (cli CLIPresenter) PresentError(data error) {
-	fmt.Printf("[ERROR] %s", data)
-}
-
 func readOrPanic() string {
 	data, err := reader.ReadString('\n')
 	if err != nil {
@@ -52,7 +42,12 @@ func main() {
 	createUser := internal.NewCreateUserCase(
 		validator.New(),
 		repo,
-		hash.BcryptPasswordHasher{})
+		hash.BcryptHasher{})
 	request := readUser()
-	createUser.Exec(CLIPresenter{}, request)
+	res, err := createUser.Exec(request)
+	if err != nil {
+		fmt.Printf("[ERROR] %s", err)
+		return
+	}
+	fmt.Println(res)
 }

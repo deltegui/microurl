@@ -1,6 +1,6 @@
 {{define "content"}}
-<div id="login" class="container-sm bg-dark text-light">
-    <h1>Login</h1>
+<div id="login" class="container-sm text-light">
+    <h1>MicroURL</h1>
     <form method="post" action="/user/login">
         <div class="form-group row">
             <label class="col-sm-2 col-form-label" for="name">Name</label>
@@ -28,6 +28,10 @@
 <style>
 * {
     box-sizing: border-box;
+}
+
+body {
+    background-color: #212529
 }
 
 .row+.row, #submit {

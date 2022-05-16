@@ -7,22 +7,20 @@ import (
 	"github.com/deltegui/phoenix/validator"
 )
 
-type Presenter interface {
-	Present(data interface{})
-	PresentError(data error)
-}
-
 type UseCaseRequest interface{}
 type UseCaseResponse interface{}
 
-var EmptyRequest UseCaseRequest = struct{}{}
+var (
+	EmptyRequest UseCaseRequest  = struct{}{}
+	NoResponse   UseCaseResponse = struct{}{}
+)
 
 type UseCase interface {
-	Exec(Presenter, UseCaseRequest)
+	Exec(UseCaseRequest) (UseCaseResponse, error)
 }
 
 type Validator interface {
-	Validate(interface{}) (validator.ValidationResult, error)
+	Validate(interface{}) ([]error, error)
 }
 
 type RequestValidator struct {
@@ -37,31 +35,16 @@ func Validate(useCase UseCase, validator Validator) UseCase {
 	}
 }
 
-func (reqVal RequestValidator) Exec(p Presenter, req UseCaseRequest) {
+func (reqVal RequestValidator) Exec(req UseCaseRequest) (UseCaseResponse, error) {
 	valErrs, err := reqVal.validator.Validate(req)
 	if err != nil {
 		log.Printf("Error validating request: %s\n", err)
-		return
+		return NoResponse, MalformedRequestErr
 	}
 	if len(valErrs) == 0 {
-		reqVal.inner.Exec(p, req)
-		return
+		return reqVal.inner.Exec(req)
 	}
-	p.PresentError(UseCaseError{
-		Code:   0,
-		Reason: createErrorMessage(valErrs),
-	})
-}
-
-func createErrorMessage(errs validator.ValidationResult) string {
-	message := ""
-	for _, valErr := range errs {
-		current := fmt.Sprintf("Error at '%s' field: %s.", valErr.Field, valErr.Tag)
-		if message == "" {
-			message = current
-		} else {
-			message = fmt.Sprintf("%s\n%s", message, current)
-		}
-	}
-	return message
+	unwrapped := valErrs[0].(validator.ValidationError)
+	reason := fmt.Sprintf("Field %s: %s", unwrapped.Field, unwrapped.Tag)
+	return NoResponse, ValidationErr(reason)
 }

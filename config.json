@@ -1,6 +1,7 @@
 {
-    "ListenURL": "0.0.0.0:3000",
+    "ListenURL": "localhost:3000",
     "JWTKey": "blablamykeyblabla",
+    "SessionKey": "blablamykeyblabla",
     "DB": {
         "Driver": "sqlite",
         "Conn": "dev.db"

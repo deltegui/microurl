@@ -19,12 +19,34 @@ var (
 	UpdateErr           = UseCaseError{Code: 002, Reason: "Error while updating your data"}
 )
 
+func ValidationErr(reason string) UseCaseError {
+	return UseCaseError{
+		Code:   003,
+		Reason: reason,
+	}
+}
+
 // Users errors
-var (
-	UserNotFoundErr     = UseCaseError{Code: 100, Reason: "User not found"}
-	InvalidPasswordErr  = UseCaseError{Code: 101, Reason: "Invalid password"}
-	UserAlreadyExitsErr = UseCaseError{Code: 102, Reason: "User already exits"}
-)
+func UserNotFoundErr(name string) UseCaseError {
+	return UseCaseError{
+		Code:   100,
+		Reason: fmt.Sprintf("User '%s' not found", name),
+	}
+}
+
+func InvalidPasswordErr(name string) UseCaseError {
+	return UseCaseError{
+		Code:   101,
+		Reason: fmt.Sprintf("Invalid password for user '%s'", name),
+	}
+}
+
+func UserAlreadyExitsErr(name string) UseCaseError {
+	return UseCaseError{
+		Code:   102,
+		Reason: fmt.Sprintf("User '%s' already exits", name),
+	}
+}
 
 // Token errors
 var (
@@ -32,4 +54,9 @@ var (
 	NotAuthErr      = UseCaseError{Code: 300, Reason: "There is no 'Authorization' header"}
 	ExpiredTokenErr = UseCaseError{Code: 302, Reason: "Token is expired"}
 	OnlyAdminErr    = UseCaseError{Code: 303, Reason: "Endpoint is only available for users with 'admin' role"}
+)
+
+// URL errors
+var (
+	URLNotFoundErr = UseCaseError{Code: 400, Reason: "URL not found"}
 )

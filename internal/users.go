@@ -1,6 +1,8 @@
 package internal
 
-import "time"
+import (
+	"time"
+)
 
 type User struct {
 	Name     string
@@ -13,17 +15,15 @@ type Token struct {
 	Owner   string    `json:"owner"`
 }
 
+type PasswordHasher interface {
+	Hash(str string) string
+	Check(hash, str string) bool
+}
+
 type UserRepository interface {
 	Save(User) error
 	GetByName(name string) (User, error)
 	ExistsWithName(name string) bool
-	Delete(name string) error
-	GetAll() []User
-}
-
-type PasswordHasher interface {
-	Hash(password string) string
-	CheckHashPassword(hash, password string) bool
 }
 
 type Tokenizer interface {
@@ -47,7 +47,6 @@ type LoginCase struct {
 	tokenizer      Tokenizer
 }
 
-// NewLoginCase creates a ready to go LoginCase.
 func NewLoginCase(val Validator, userRepo UserRepository, hasher PasswordHasher, tokenizer Tokenizer) UseCase {
 	return Validate(LoginCase{
 		userRepository: userRepo,
@@ -56,22 +55,19 @@ func NewLoginCase(val Validator, userRepo UserRepository, hasher PasswordHasher,
 	}, val)
 }
 
-// Exec the Login use case. Expects the request to be already validated.
-func (login LoginCase) Exec(presenter Presenter, raw UseCaseRequest) {
+func (login LoginCase) Exec(raw UseCaseRequest) (UseCaseResponse, error) {
 	req := raw.(LoginRequest)
 	if !login.userRepository.ExistsWithName(req.Name) {
-		presenter.PresentError(UserNotFoundErr)
-		return
+		return NoResponse, UserNotFoundErr(req.Name)
 	}
 	user, _ := login.userRepository.GetByName(req.Name)
-	if login.hasher.CheckHashPassword(user.Password, req.Password) {
-		presenter.PresentError(InvalidPasswordErr)
-		return
+	if !login.hasher.Check(user.Password, req.Password) {
+		return NoResponse, InvalidPasswordErr(req.Name)
 	}
-	presenter.Present(LoginResponse{
+	return LoginResponse{
 		Name:  user.Name,
 		Token: login.tokenizer.Tokenize(user),
-	})
+	}, nil
 }
 
 type CreateUserRequest struct {
@@ -79,7 +75,6 @@ type CreateUserRequest struct {
 	Password string `validate:"required,min=3,max=255"`
 }
 
-// UserResponse is the generic user response.
 type UserResponse struct {
 	Name string
 }
@@ -96,11 +91,10 @@ func NewCreateUserCase(val Validator, userRepo UserRepository, hasher PasswordHa
 	}, val)
 }
 
-func (create CreateUserCase) Exec(presenter Presenter, raw UseCaseRequest) {
+func (create CreateUserCase) Exec(raw UseCaseRequest) (UseCaseResponse, error) {
 	req := raw.(CreateUserRequest)
 	if create.userRepository.ExistsWithName(req.Name) {
-		presenter.PresentError(UserAlreadyExitsErr)
-		return
+		return NoResponse, UserAlreadyExitsErr(req.Name)
 	}
 	hashed := create.hasher.Hash(req.Password)
 	user := User{
@@ -108,7 +102,7 @@ func (create CreateUserCase) Exec(presenter Presenter, raw UseCaseRequest) {
 		Password: hashed,
 	}
 	create.userRepository.Save(user)
-	presenter.Present(UserResponse{
+	return UserResponse{
 		Name: req.Name,
-	})
+	}, nil
 }

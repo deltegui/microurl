@@ -3,15 +3,20 @@ package session
 import (
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/sessions"
 )
 
-var store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
+type Manager struct {
+	store *sessions.CookieStore
+}
 
-func sessionTransaction(req *http.Request, w http.ResponseWriter, exec func(session *sessions.Session)) {
-	session, _ := store.Get(req, "session-name")
+func New(key string) Manager {
+	return Manager{sessions.NewCookieStore([]byte(key))}
+}
+
+func (manager Manager) sessionTransaction(req *http.Request, w http.ResponseWriter, exec func(session *sessions.Session)) {
+	session, _ := manager.store.Get(req, "session-name")
 	exec(session)
 	err := session.Save(req, w)
 	if err != nil {
@@ -20,14 +25,14 @@ func sessionTransaction(req *http.Request, w http.ResponseWriter, exec func(sess
 	}
 }
 
-func StoreSession(w http.ResponseWriter, req *http.Request, token string) {
-	sessionTransaction(req, w, func(session *sessions.Session) {
+func (manager Manager) Store(w http.ResponseWriter, req *http.Request, token string) {
+	manager.sessionTransaction(req, w, func(session *sessions.Session) {
 		session.Values["token"] = token
 	})
 }
 
-func GetSession(w http.ResponseWriter, req *http.Request) (token string, err error) {
-	sessionTransaction(req, w, func(session *sessions.Session) {
+func (manager Manager) Get(w http.ResponseWriter, req *http.Request) (token string, err error) {
+	manager.sessionTransaction(req, w, func(session *sessions.Session) {
 		if _, ok := session.Values["token"]; !ok {
 			err = fmt.Errorf("session not found")
 			return
@@ -36,4 +41,10 @@ func GetSession(w http.ResponseWriter, req *http.Request) (token string, err err
 		token = session.Values["token"].(string)
 	})
 	return
+}
+
+func (manager Manager) Reset(w http.ResponseWriter, req *http.Request) {
+	manager.sessionTransaction(req, w, func(session *sessions.Session) {
+		delete(session.Values, "token")
+	})
 }

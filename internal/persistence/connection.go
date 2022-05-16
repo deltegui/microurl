@@ -22,4 +22,5 @@ func Connect(config config.Configuration) Connection {
 
 func (conn Connection) MigrateAll() {
 	conn.db.AutoMigrate(User{})
+	conn.db.AutoMigrate(URL{})
 }
