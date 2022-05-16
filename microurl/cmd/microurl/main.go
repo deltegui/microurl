@@ -21,12 +21,27 @@ import (
 )
 
 func main() {
-	ctx := wire()
+	phoenix.PrintLogo("banner")
+	conf := config.Load()
+	ctx := wire(conf)
 	router := createRouter()
 	mount(ctx, router)
 	log.Println("Listening on :3000")
-	if err := http.ListenAndServe(":3000", router); err != nil {
-		log.Fatalln("Error while creating server")
+	// phoenix.FileServerStatic(router, "/static")
+	listen(router, conf)
+}
+
+func listen(r chi.Router, config config.Configuration) {
+	log.Printf("Listening on %s with tls? %t\n", config.ListenURL, config.TLS.Enabled)
+	// log.Println("CORS allow origin: ", config.CORS)
+	var err error
+	if config.TLS.Enabled {
+		err = http.ListenAndServeTLS(config.ListenURL, config.TLS.CRT, config.TLS.KEY, r)
+	} else {
+		err = http.ListenAndServe(config.ListenURL, r)
+	}
+	if err != nil {
+		log.Fatal("Error listening: ", err)
 	}
 }
 
@@ -37,8 +52,7 @@ func redirectToRoot(w http.ResponseWriter, req *http.Request) phoenix.Present {
 	}
 }
 
-func wire() web.Ctx {
-	conf := config.Load()
+func wire(conf config.Configuration) web.Ctx {
 	conn := persistence.Connect(conf)
 	conn.MigrateAll()
 	val := validator.New()

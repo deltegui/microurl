@@ -38,18 +38,22 @@ var users = []internal.User{
 
 var urls = []internal.URL{
 	{
+		Name:     "My youtube",
 		Original: "http://youtube.com/hola",
 		Owner:    "manolo",
 	},
 	{
+		Name:     "Hola!",
 		Original: "https://hello.com/hola",
 		Owner:    "manolo",
 	},
 	{
+		Name:     "A video that I liked",
 		Original: "https://youtube.com/xasfhasd",
 		Owner:    "paola",
 	},
 	{
+		Name:     "My web",
 		Original: "https://manolo.com/manolo",
 		Owner:    "ambrosio",
 	},

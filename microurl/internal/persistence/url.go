@@ -9,6 +9,7 @@ import (
 
 type URL struct {
 	gorm.Model
+	Name     string
 	Original string
 	Owner    string
 	Times    int
@@ -25,6 +26,7 @@ func NewGormURLRepository(conn Connection) GormURLRepository {
 
 func (repo GormURLRepository) Save(url *internal.URL) error {
 	model := URL{
+		Name:     url.Name,
 		Original: url.Original,
 		Owner:    url.Owner,
 		Times:    url.Times,
@@ -48,6 +50,7 @@ func (repo GormURLRepository) FindByID(id uint) (internal.URL, error) {
 		return internal.URL{}, result.Error
 	}
 	return internal.URL{
+		Name:     model.Name,
 		ID:       model.ID,
 		Original: model.Original,
 		Owner:    model.Owner,
@@ -71,6 +74,7 @@ func (repo GormURLRepository) GetAllForUser(user string) []internal.URL {
 	var model []internal.URL
 	for _, u := range urls {
 		model = append(model, internal.URL{
+			Name:     u.Name,
 			ID:       u.ID,
 			Original: u.Original,
 			Owner:    u.Owner,

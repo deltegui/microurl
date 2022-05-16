@@ -24,7 +24,7 @@ type JWTAuth struct {
 	createPresenter func(w http.ResponseWriter, req *http.Request) phoenix.Present
 }
 
-func (authMiddle JWTAuth) createHandler(next http.HandlerFunc, getToken tokenGetter) http.HandlerFunc {
+func (authMiddle JWTAuth) createHandler(next http.Handler, getToken tokenGetter) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		authMiddle.handleAndCheckToken(w, req, next, getToken)
 	})
@@ -57,7 +57,7 @@ func NewSessionJWTAuth(tokenizer internal.Tokenizer, createPresenter PresenterCr
 	}
 }
 
-func (authMiddle SessionJWTAuth) Authorize(next http.HandlerFunc) http.HandlerFunc {
+func (authMiddle SessionJWTAuth) Authorize(next http.Handler) http.Handler {
 	return authMiddle.createHandler(next, authMiddle.getToken)
 }
 
@@ -81,7 +81,7 @@ func NewHeaderJWTAuth(tokenizer internal.Tokenizer, createPresenter PresenterCre
 	return HeaderJWTAuth{JWTAuth{tokenizer, createPresenter}}
 }
 
-func (authMiddle HeaderJWTAuth) Authorize(next http.HandlerFunc) http.HandlerFunc {
+func (authMiddle HeaderJWTAuth) Authorize(next http.Handler) http.Handler {
 	return authMiddle.createHandler(next, authMiddle.getToken)
 }
 

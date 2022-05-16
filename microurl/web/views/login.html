@@ -1,10 +1,47 @@
 {{define "content"}}
+<div id="login" class="container-sm bg-dark text-light">
+    <h1>Login</h1>
     <form method="post" action="/user/login">
-        <input name="name" type="text" placeholder="Name" />
-        <input name="password" type="password" placeholder="Password" />
-        <input type="submit" value="Login" />
+        <div class="form-group row">
+            <label class="col-sm-2 col-form-label" for="name">Name</label>
+            <div class="col-sm-10">
+                <input class="form-control" id="name" name="name" type="text" />
+            </div>
+        </div>
+        <div class="form-group row">
+            <label class="col-sm-2 col-form-label" for="password">Password</label>
+            <div class="col-sm-10">
+                <input class="form-control" id="password" name="password" type="password" />
+            </div>
+        </div>
+        <div class="row">
+            {{ if .HadError }}
+                <span> {{ .Error }}</span><br>
+            {{ end }}
+        </div>
+        <input id="submit" class="btn btn-primary form-control" type="submit" value="Login" />
     </form>
-    {{ if .HadError }}
-        <span> {{ .Error }}</span><br>
-    {{ end }}
+</div>
+{{end}}
+
+{{define "css"}}
+<style>
+* {
+    box-sizing: border-box;
+}
+
+.row+.row, #submit {
+    margin-top: 20px;
+}
+
+#login {
+    margin-top: 20vh;
+    padding: 10px;
+    border-radius: 9px;
+}
+
+span {
+    color: red;
+}
+</style>
 {{end}}

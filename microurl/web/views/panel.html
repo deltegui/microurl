@@ -1,19 +1,74 @@
 {{define "content"}}
-    <h1>Panel</h1>
-    <form method="post" action="/panel/shorten">
-        <input type="text" name="url" placeholder="URL" >
-        <input type="submit" >
-    </form>
-    <a href="/user/logout">Logout</a>
-    {{ range $value := .URLs }}
-    <div>
-        Original: {{ $value.Original }}
-        URL: {{ $value.URL }}
-        Times: {{ $value.Times }}
-        <form method="post" action="/panel/delete/{{ $value.ID }}">
-            <input type="submit" >
-        </form>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">MicroURL</a>
+      <a class="btn btn-danger" href="/user/logout">Logout</a>
     </div>
-    <br>
-    {{ end }}
+  </nav>
+
+<div class="container-md">
+    <h1>Your URLs</h1>
+    <form method="post" action="/panel/shorten">
+        <div class="form-group row">
+            <div class="col-md-5">
+                <input class="form-control" type="text" name="name" placeholder="Name" >
+            </div>
+            <div class="col-md-5">
+                <input class="form-control" type="text" name="url" placeholder="URL" >
+            </div>
+            <div class="col-md-2">
+                <input class="form-control btn btn-primary" type="submit" value="Add" >
+            </div>
+        </div>
+        <div class="row">
+            {{ if .HadError }}
+                <span> {{ .Error }}</span><br>
+            {{ end }}
+        </div>
+    </form>
+    <div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Original</th>
+                <th>URL</th>
+                <th>Times</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {{ range $value := .URLs }}
+            <tr>
+                <th>{{ $value.Name }}</th>
+                <th>>{{ $value.Original }}</th>
+                <th>{{ $value.URL }}</th>
+                <th>{{ $value.Times }}</th>
+                <th>
+                    <form method="post" action="/panel/delete/{{ $value.ID }}">
+                        <input class="btn btn-danger" type="submit" value="Delete" >
+                    </form>
+                </th>
+            </tr>
+        {{ end }}
+        </tbody>
+    </table>
+    </div>
+</div>
+{{end}}
+
+{{define "css"}}
+<style>
+* {
+    box-sizing: border-box;
+}
+
+.form-control, h1 {
+    margin-top: 20px;
+}
+
+span {
+    color: red;
+}
+</style>
 {{end}}

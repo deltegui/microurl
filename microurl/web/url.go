@@ -27,7 +27,7 @@ func URLPresenter(w http.ResponseWriter, req *http.Request, render views.Render)
 			return
 		}
 		payload := data.(internal.URLResponse)
-		http.Redirect(w, req, payload.URL, http.StatusMovedPermanently)
+		http.Redirect(w, req, payload.Original, http.StatusMovedPermanently)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"embed"
 	"html/template"
 	"io"
+	"microurl/internal"
 	"net/http"
 	"strings"
 )
@@ -50,6 +51,12 @@ type LoginModel struct {
 
 func Login(w io.Writer, m interface{}) error {
 	return login.Execute(w, m)
+}
+
+type PanelModel struct {
+	HadError bool
+	Error    string
+	URLs     []internal.URLResponse
 }
 
 func Panel(w io.Writer, m interface{}) error {

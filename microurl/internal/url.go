@@ -16,18 +16,24 @@ type URLRepository interface {
 
 type URL struct {
 	ID       uint
+	Name     string
 	Original string
 	Owner    string
 	Times    int
 }
 
 type ShortenRequest struct {
-	Name string `validate:"required,min=3,max=255"`
-	URL  string `validate:"required,min=3"`
+	Username string `validate:"required,min=3,max=255"`
+	Name     string `validate:"required,min=3,max=255"`
+	URL      string `validate:"required,min=3"`
 }
 
 type URLResponse struct {
-	URL string
+	Name     string
+	ID       uint
+	Original string
+	URL      string
+	Times    int
 }
 
 type URLGenerator func(path string) string
@@ -50,18 +56,25 @@ func NewShortenCase(val Validator, userRepo UserRepository, urlRepo URLRepositor
 
 func (shortenCase ShortenCase) Exec(raw UseCaseRequest) (UseCaseResponse, error) {
 	req := raw.(ShortenRequest)
-	if !shortenCase.userRepository.ExistsWithName(req.Name) {
-		return NoResponse, UserNotFoundErr(req.Name)
+	if !shortenCase.userRepository.ExistsWithName(req.Username) {
+		return NoResponse, UserNotFoundErr(req.Username)
 	}
 	url := URL{
+		Name:     req.Name,
 		Original: req.URL,
-		Owner:    req.Name,
+		Owner:    req.Username,
 	}
 	if err := shortenCase.urlRepository.Save(&url); err != nil {
 		return NoResponse, InternalErr
 	}
 	hashed := shortenCase.hasher.Shorten(int(url.ID))
-	return URLResponse{shortenCase.genURL(hashed)}, nil
+	return URLResponse{
+		ID:       url.ID,
+		Name:     req.Name,
+		Original: req.URL,
+		URL:      shortenCase.genURL(hashed),
+		Times:    url.Times,
+	}, nil
 }
 
 type AccessRequest struct {
@@ -95,22 +108,21 @@ func (accessCase AccessCase) Exec(raw UseCaseRequest) (UseCaseResponse, error) {
 	if err := accessCase.urlRepository.Save(&url); err != nil {
 		return NoResponse, InternalErr
 	}
-	return URLResponse{url.Original}, nil
+	return URLResponse{
+		ID:       url.ID,
+		Name:     url.Name,
+		Original: url.Original,
+		URL:      req.Hash,
+		Times:    url.Times,
+	}, nil
 }
 
 type AllURLsRequest struct {
 	User string `validate:"required,min=3,max=255"`
 }
 
-type eachURLResponse struct {
-	ID       uint
-	Original string
-	URL      string
-	Times    int
-}
-
 type AllURLsResponse struct {
-	URLs []eachURLResponse
+	URLs []URLResponse
 }
 
 type AllURLsCase struct {
@@ -130,10 +142,11 @@ func NewAllURLsCase(val Validator, urlRepo URLRepository, hasher Shortener, genU
 func (allCase AllURLsCase) Exec(raw UseCaseRequest) (UseCaseResponse, error) {
 	req := raw.(AllURLsRequest)
 	urls := allCase.urlRepository.GetAllForUser(req.User)
-	var res []eachURLResponse
+	var res []URLResponse
 	for _, url := range urls {
 		unwrapped := allCase.hasher.Shorten(int(url.ID))
-		res = append(res, eachURLResponse{
+		res = append(res, URLResponse{
+			Name:     url.Name,
 			ID:       url.ID,
 			Original: url.Original,
 			URL:      allCase.genURL(unwrapped),
