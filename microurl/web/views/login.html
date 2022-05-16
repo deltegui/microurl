@@ -1,6 +1,6 @@
 {{define "content"}}
-    <form method="post" action="/login">
-        <input name="name" type="text" placeholder="Name" value="{{ .Name }}" />
+    <form method="post" action="/user/login">
+        <input name="name" type="text" placeholder="Name" />
         <input name="password" type="password" placeholder="Password" />
         <input type="submit" value="Login" />
     </form>

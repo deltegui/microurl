@@ -32,7 +32,7 @@ func (hasher Base62) Shorten(id int) string {
 	return mapDigits(digits)
 }
 
-func reverse[T comparable](arr []T) {
+func reverse[T any](arr []T) {
 	for i, n := range arr {
 		j := len(arr) - 1 - i
 		if i == j {

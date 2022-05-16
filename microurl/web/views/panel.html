@@ -4,6 +4,16 @@
         <input type="text" name="url" placeholder="URL" >
         <input type="submit" >
     </form>
-    {{ .Shorten }}
-    <a href="/logout">Logout</a>
+    <a href="/user/logout">Logout</a>
+    {{ range $value := .URLs }}
+    <div>
+        Original: {{ $value.Original }}
+        URL: {{ $value.URL }}
+        Times: {{ $value.Times }}
+        <form method="post" action="/panel/delete/{{ $value.ID }}">
+            <input type="submit" >
+        </form>
+    </div>
+    <br>
+    {{ end }}
 {{end}}

@@ -55,3 +55,8 @@ var (
 	ExpiredTokenErr = UseCaseError{Code: 302, Reason: "Token is expired"}
 	OnlyAdminErr    = UseCaseError{Code: 303, Reason: "Endpoint is only available for users with 'admin' role"}
 )
+
+// URL errors
+var (
+	URLNotFoundErr = UseCaseError{Code: 400, Reason: "URL not found"}
+)

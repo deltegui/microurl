@@ -38,8 +38,9 @@ func RenderHandler(render Render, m interface{}) http.HandlerFunc {
 type Render func(w io.Writer, m interface{}) error
 
 var (
-	login = parse("login.html")
-	panel = parse("panel.html")
+	login  = parse("login.html")
+	panel  = parse("panel.html")
+	urlErr = parse("urlerr.html")
 )
 
 type LoginModel struct {
@@ -51,10 +52,10 @@ func Login(w io.Writer, m interface{}) error {
 	return login.Execute(w, m)
 }
 
-type PanelModel struct {
-	Shorten string
-}
-
 func Panel(w io.Writer, m interface{}) error {
 	return panel.Execute(w, m)
+}
+
+func URLError(w io.Writer, m interface{}) error {
+	return urlErr.Execute(w, m)
 }

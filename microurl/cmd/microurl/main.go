@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"microurl/internal"
 	"microurl/internal/config"
@@ -47,11 +48,17 @@ func wire() web.Ctx {
 	shortHasher := shortener.Base62{}
 	tokenizer := token.New(conf.JWTKey)
 	sessionManager := session.New(conf.SessionKey)
+	genURL := func(path string) string {
+		return fmt.Sprintf("%s/%s", conf.ListenURL, path)
+	}
 	return web.Ctx{
 		Session: sessionManager,
 		Auth:    web.NewSessionJWTAuth(tokenizer, redirectToRoot, sessionManager),
 		Login:   internal.NewLoginCase(val, userRepo, hasher, tokenizer),
-		Shorten: internal.NewShortenCase(val, userRepo, urlRepo, shortHasher),
+		Shorten: internal.NewShortenCase(val, userRepo, urlRepo, shortHasher, genURL),
+		Access:  internal.NewAccessCase(val, urlRepo, shortHasher),
+		AllURLs: internal.NewAllURLsCase(val, urlRepo, shortHasher, genURL),
+		Delete:  internal.NewDeleteCase(val, urlRepo),
 	}
 }
 
@@ -66,6 +73,7 @@ func createRouter() chi.Router {
 }
 
 func mount(ctx web.Ctx, router chi.Router) {
-	router.Mount("/", web.CreateUserRoutes(ctx))
+	router.Mount("/user", web.CreateUserRoutes(ctx))
+	router.Mount("/", web.CreateURLRoutes(ctx))
 	router.Mount("/panel", web.CreatePanelRoutes(ctx))
 }
