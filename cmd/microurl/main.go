@@ -72,7 +72,7 @@ func wire(conf config.Configuration) web.Ctx {
 		if conf.TLS.Enabled {
 			method = "https"
 		}
-		return fmt.Sprintf("%s://%s/%s", method, conf.ListenURL, path)
+		return fmt.Sprintf("%s://%s/%s", method, conf.PublicURL, path)
 	}
 	return web.Ctx{
 		Session: sessionManager,
