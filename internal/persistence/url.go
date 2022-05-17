@@ -13,6 +13,7 @@ type URL struct {
 	Original string
 	Owner    string
 	Times    int
+	QR       string
 	User     User `gorm:"foreignKey:Owner"`
 }
 
@@ -30,6 +31,7 @@ func (repo GormURLRepository) Save(url *internal.URL) error {
 		Original: url.Original,
 		Owner:    url.Owner,
 		Times:    url.Times,
+		QR:       url.QR,
 	}
 	_, err := repo.FindByID(url.ID)
 	if err == nil {
@@ -55,6 +57,7 @@ func (repo GormURLRepository) FindByID(id uint) (internal.URL, error) {
 		Original: model.Original,
 		Owner:    model.Owner,
 		Times:    model.Times,
+		QR:       model.QR,
 	}, nil
 }
 
@@ -79,6 +82,7 @@ func (repo GormURLRepository) GetAllForUser(user string) []internal.URL {
 			Original: u.Original,
 			Owner:    u.Owner,
 			Times:    u.Times,
+			QR:       u.QR,
 		})
 	}
 	return model

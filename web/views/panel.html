@@ -34,6 +34,7 @@
                 <th>Original</th>
                 <th>URL</th>
                 <th>Times</th>
+                <th>QR</th>
                 <th></th>
             </tr>
         </thead>
@@ -41,9 +42,18 @@
         {{ range $value := .URLs }}
             <tr>
                 <th>{{ $value.Name }}</th>
-                <th>>{{ $value.Original }}</th>
-                <th>{{ $value.URL }}</th>
+                <th>><a href="{{ $value.Original }}">{{ $value.Original }}</a></th>
+                <th><a href="{{ $value.URL }}">{{ $value.URL }}</a></th>
                 <th>{{ $value.Times }}</th>
+                <th>
+                    {{ if eq $value.QR "" }}
+                        <form method="post" action="/panel/genqr/{{ $value.ID }}">
+                            <input class="btn btn-primary" type="submit" value="Generate" >
+                        </form>
+                    {{ else }}
+                        <a href="{{ $value.QR }}">{{ $value.QR }}</a>
+                    {{ end }}
+                </th>
                 <th>
                     <form method="post" action="/panel/delete/{{ $value.ID }}">
                         <input class="btn btn-danger" type="submit" value="Delete" >

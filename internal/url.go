@@ -2,6 +2,11 @@ package internal
 
 import "log"
 
+type QRRepository interface {
+	Save(url URL, shortened string) (string, error)
+	Delete(url URL) error
+}
+
 type Shortener interface {
 	Shorten(id int) string
 	Unwrap(shorten string) (int, error)
@@ -20,6 +25,11 @@ type URL struct {
 	Original string
 	Owner    string
 	Times    int
+	QR       string
+}
+
+func (url URL) HaveQR() bool {
+	return url.QR != ""
 }
 
 type ShortenRequest struct {
@@ -29,11 +39,27 @@ type ShortenRequest struct {
 }
 
 type URLResponse struct {
-	Name     string
 	ID       uint
+	Name     string
 	Original string
 	URL      string
 	Times    int
+	QR       string
+}
+
+func newURLResponse(url URL, shorten string, genURL URLGenerator) URLResponse {
+	qr := url.QR
+	if qr != "" {
+		qr = genURL(qr)
+	}
+	return URLResponse{
+		ID:       url.ID,
+		Name:     url.Name,
+		Original: url.Original,
+		URL:      genURL(shorten),
+		Times:    url.Times,
+		QR:       qr,
+	}
 }
 
 type URLGenerator func(path string) string
@@ -68,13 +94,7 @@ func (shortenCase ShortenCase) Exec(raw UseCaseRequest) (UseCaseResponse, error)
 		return NoResponse, InternalErr
 	}
 	hashed := shortenCase.hasher.Shorten(int(url.ID))
-	return URLResponse{
-		ID:       url.ID,
-		Name:     req.Name,
-		Original: req.URL,
-		URL:      shortenCase.genURL(hashed),
-		Times:    url.Times,
-	}, nil
+	return newURLResponse(url, hashed, shortenCase.genURL), nil
 }
 
 type AccessRequest struct {
@@ -84,12 +104,14 @@ type AccessRequest struct {
 type AccessCase struct {
 	urlRepository URLRepository
 	hasher        Shortener
+	genURL        URLGenerator
 }
 
-func NewAccessCase(val Validator, urlRepo URLRepository, hasher Shortener) UseCase {
+func NewAccessCase(val Validator, urlRepo URLRepository, hasher Shortener, genURL URLGenerator) UseCase {
 	return Validate(AccessCase{
 		urlRepository: urlRepo,
 		hasher:        hasher,
+		genURL:        genURL,
 	}, val)
 }
 
@@ -108,13 +130,7 @@ func (accessCase AccessCase) Exec(raw UseCaseRequest) (UseCaseResponse, error) {
 	if err := accessCase.urlRepository.Save(&url); err != nil {
 		return NoResponse, InternalErr
 	}
-	return URLResponse{
-		ID:       url.ID,
-		Name:     url.Name,
-		Original: url.Original,
-		URL:      req.Hash,
-		Times:    url.Times,
-	}, nil
+	return newURLResponse(url, req.Hash, accessCase.genURL), nil
 }
 
 type AllURLsRequest struct {
@@ -145,33 +161,29 @@ func (allCase AllURLsCase) Exec(raw UseCaseRequest) (UseCaseResponse, error) {
 	var res []URLResponse
 	for _, url := range urls {
 		unwrapped := allCase.hasher.Shorten(int(url.ID))
-		res = append(res, URLResponse{
-			Name:     url.Name,
-			ID:       url.ID,
-			Original: url.Original,
-			URL:      allCase.genURL(unwrapped),
-			Times:    url.Times,
-		})
+		res = append(res, newURLResponse(url, unwrapped, allCase.genURL))
 	}
 	return AllURLsResponse{res}, nil
 }
 
-type DeleteRequest struct {
+type URLIDRequest struct {
 	URLID uint
 }
 
 type DeleteCase struct {
 	urlRepository URLRepository
+	qrRepo        QRRepository
 }
 
-func NewDeleteCase(val Validator, urlRepo URLRepository) UseCase {
+func NewDeleteCase(val Validator, urlRepo URLRepository, qrRepo QRRepository) UseCase {
 	return Validate(DeleteCase{
 		urlRepository: urlRepo,
+		qrRepo:        qrRepo,
 	}, val)
 }
 
 func (delCase DeleteCase) Exec(raw UseCaseRequest) (UseCaseResponse, error) {
-	req := raw.(DeleteRequest)
+	req := raw.(URLIDRequest)
 	url, err := delCase.urlRepository.FindByID(req.URLID)
 	if err != nil {
 		log.Println("Error while searching for URL with id", req.URLID, ":", err)
@@ -179,6 +191,49 @@ func (delCase DeleteCase) Exec(raw UseCaseRequest) (UseCaseResponse, error) {
 	}
 	if err := delCase.urlRepository.Delete(url); err != nil {
 		return NoResponse, InternalErr
+	}
+	if url.HaveQR() {
+		if err := delCase.qrRepo.Delete(url); err != nil {
+			log.Println("Cannot delete qr file for URL with ID:", url.ID)
+		}
+	}
+	return url, nil
+}
+
+type GenQRCase struct {
+	urlRepository URLRepository
+	qrRepo        QRRepository
+	shortener     Shortener
+	genURL        URLGenerator
+}
+
+func NewGenQRCase(val Validator, urlRepo URLRepository, qrRepo QRRepository, short Shortener, genURL URLGenerator) UseCase {
+	return Validate(GenQRCase{
+		urlRepository: urlRepo,
+		qrRepo:        qrRepo,
+		shortener:     short,
+		genURL:        genURL,
+	}, val)
+}
+
+func (qrCase GenQRCase) Exec(raw UseCaseRequest) (UseCaseResponse, error) {
+	req := raw.(URLIDRequest)
+	url, err := qrCase.urlRepository.FindByID(req.URLID)
+	if err != nil {
+		log.Println("Error while searching for URL with id", req.URLID, ":", err)
+		return NoResponse, URLNotFoundErr
+	}
+	short := qrCase.shortener.Shorten(int(url.ID))
+	path, err := qrCase.qrRepo.Save(url, qrCase.genURL(short))
+	if err != nil {
+		log.Println("Error while generating QR code for URL with id", req.URLID, ":", err)
+		return NoResponse, QRGenerationErr
+	}
+	url.QR = path
+	if err := qrCase.urlRepository.Save(&url); err != nil {
+		log.Println("Error while updating URL with id", req.URLID, "to add new QR file:", err)
+		qrCase.qrRepo.Delete(url)
+		return NoResponse, QRGenerationErr
 	}
 	return url, nil
 }

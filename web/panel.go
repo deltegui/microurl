@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/deltegui/phoenix"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 const panelPath = "/panel"
@@ -19,6 +19,7 @@ func CreatePanelRoutes(ctx Ctx) chi.Router {
 	r.Get("/", panelHandler(ctx, views.Panel))
 	r.Post("/shorten", shortenHandler(ctx, views.Panel))
 	r.Post("/delete/{id}", deleteHandler(ctx, views.Panel))
+	r.Post("/genqr/{id}", genQRHandler(ctx, views.Panel))
 	return r
 }
 
@@ -93,14 +94,13 @@ func getAllUrls(w http.ResponseWriter, req *http.Request, ctx Ctx) (internal.Use
 func deleteHandler(ctx Ctx, render views.Render) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		present := PanelPresenter(w, req, render)
-		str := chi.URLParam(req, "id")
-		id, err := strconv.Atoi(str)
+		id, err := getURLID(req)
 		if err != nil {
 			present(nil, internal.MalformedRequestErr)
 			return
 		}
-		_, err = ctx.Delete.Exec(internal.DeleteRequest{
-			URLID: uint(id),
+		_, err = ctx.Delete.Exec(internal.URLIDRequest{
+			URLID: id,
 		})
 		if err != nil {
 			present(nil, internal.MalformedRequestErr)
@@ -108,4 +108,28 @@ func deleteHandler(ctx Ctx, render views.Render) http.HandlerFunc {
 		}
 		panelHandler(ctx, render)(w, req)
 	}
+}
+
+func genQRHandler(ctx Ctx, render views.Render) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		present := PanelPresenter(w, req, render)
+		id, err := getURLID(req)
+		if err != nil {
+			present(nil, internal.MalformedRequestErr)
+			return
+		}
+		ctx.GenQR.Exec(internal.URLIDRequest{
+			URLID: id,
+		})
+		panelHandler(ctx, render)(w, req)
+	}
+}
+
+func getURLID(req *http.Request) (uint, error) {
+	str := chi.URLParam(req, "id")
+	id, err := strconv.Atoi(str)
+	if err != nil {
+		return 0, err
+	}
+	return uint(id), nil
 }

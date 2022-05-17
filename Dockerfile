@@ -12,6 +12,7 @@ EXPOSE 3000
 COPY --from=golang-builder /build/microurl /
 COPY ./config.json /config.json
 COPY ./banner /banner
+COPY ./static /static
 RUN mkdir /data
 ENV CONFIG_TLSCRT=/data/server.crt
 ENV CONFIG_TLSKEY=/data/server.key

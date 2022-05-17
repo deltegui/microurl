@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/deltegui/phoenix"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 const (

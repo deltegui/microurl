@@ -58,5 +58,6 @@ var (
 
 // URL errors
 var (
-	URLNotFoundErr = UseCaseError{Code: 400, Reason: "URL not found"}
+	URLNotFoundErr  = UseCaseError{Code: 400, Reason: "URL not found"}
+	QRGenerationErr = UseCaseError{Code: 401, Reason: "Cannot generate QR code"}
 )

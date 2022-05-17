@@ -11,14 +11,17 @@ import (
 	"microurl/web"
 	"microurl/web/session"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/deltegui/phoenix"
 	phxHash "github.com/deltegui/phoenix/hash"
 	"github.com/deltegui/phoenix/validator"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
+
+const QRStaticPath = "static/qr"
 
 func main() {
 	phoenix.PrintLogo("banner")
@@ -27,7 +30,7 @@ func main() {
 	router := createRouter()
 	mount(ctx, router)
 	log.Println("Listening on :3000")
-	// phoenix.FileServerStatic(router, "/static")
+	phoenix.FileServerStatic(router.(*chi.Mux), "/static")
 	listen(router, conf)
 }
 
@@ -58,21 +61,38 @@ func wire(conf config.Configuration) web.Ctx {
 	val := validator.New()
 	userRepo := persistence.NewGormUserRepository(conn)
 	urlRepo := persistence.NewGormURLRepository(conn)
+	qrRepo := persistence.NewFileQRRepository(QRStaticPath)
+	ensureQRFiles(conf, qrRepo, userRepo)
 	hasher := phxHash.BcryptHasher{}
 	shortHasher := shortener.Base62{}
 	tokenizer := token.New(conf.JWTKey)
 	sessionManager := session.New(conf.SessionKey)
 	genURL := func(path string) string {
-		return fmt.Sprintf("%s/%s", conf.ListenURL, path)
+		method := "http"
+		if conf.TLS.Enabled {
+			method = "https"
+		}
+		return fmt.Sprintf("%s://%s/%s", method, conf.ListenURL, path)
 	}
 	return web.Ctx{
 		Session: sessionManager,
 		Auth:    web.NewSessionJWTAuth(tokenizer, redirectToRoot, sessionManager),
 		Login:   internal.NewLoginCase(val, userRepo, hasher, tokenizer),
 		Shorten: internal.NewShortenCase(val, userRepo, urlRepo, shortHasher, genURL),
-		Access:  internal.NewAccessCase(val, urlRepo, shortHasher),
+		Access:  internal.NewAccessCase(val, urlRepo, shortHasher, genURL),
 		AllURLs: internal.NewAllURLsCase(val, urlRepo, shortHasher, genURL),
-		Delete:  internal.NewDeleteCase(val, urlRepo),
+		Delete:  internal.NewDeleteCase(val, urlRepo, qrRepo),
+		GenQR:   internal.NewGenQRCase(val, urlRepo, qrRepo, shortHasher, genURL),
+	}
+}
+
+func ensureQRFiles(conf config.Configuration, qr persistence.FileQRRepository, userRepo internal.UserRepository) {
+	qr.GeneratePath()
+	users := userRepo.GetAll()
+	for _, u := range users {
+		if err := os.Mkdir(fmt.Sprintf("%s/%s", QRStaticPath, u.Name), os.ModePerm); err != nil {
+			log.Println(err)
+		}
 	}
 }
 

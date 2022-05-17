@@ -54,11 +54,23 @@ func (repo GormUserRepository) ExistsWithName(name string) bool {
 	return result.Error == nil && result.RowsAffected > 0
 }
 
-// TODO
-/*
-func (repo GormUserRepository) Delete(name string) error {
-	var model User
-	result := repo.conn.db.Delete(&model, "name = ?", name)
-	return result.Error
+func (repo GormUserRepository) GetAll() []internal.User {
+	var users []User
+	result := repo.conn.db.Find(&users)
+	if result.Error != nil {
+		return []internal.User{}
+	}
+	return usersToDomain(users)
 }
-*/
+
+func usersToDomain(models []User) []internal.User {
+	users := make([]internal.User, len(models))
+	for i := 0; i < len(models); i++ {
+		current := models[i]
+		users[i] = internal.User{
+			Name:     current.Name,
+			Password: current.Password,
+		}
+	}
+	return users
+}

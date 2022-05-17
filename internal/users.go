@@ -24,6 +24,7 @@ type UserRepository interface {
 	Save(User) error
 	GetByName(name string) (User, error)
 	ExistsWithName(name string) bool
+	GetAll() []User
 }
 
 type Tokenizer interface {
