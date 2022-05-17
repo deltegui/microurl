@@ -1,5 +1,6 @@
 {
     "ListenURL": "localhost:3000",
+    "PublicURL": "localhost:3000",
     "JWTKey": "blablamykeyblabla",
     "SessionKey": "blablamykeyblabla",
     "DB": {

@@ -3,7 +3,7 @@ module microurl
 go 1.18
 
 require (
-	github.com/deltegui/configloader v1.2.3
+	github.com/deltegui/configloader/v2 v2.0.3
 	github.com/deltegui/phoenix v0.34.0
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/golang-jwt/jwt v3.2.2+incompatible
