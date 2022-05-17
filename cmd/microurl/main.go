@@ -63,7 +63,7 @@ func wire(conf config.Configuration) web.Ctx {
 	tokenizer := token.New(conf.JWTKey)
 	sessionManager := session.New(conf.SessionKey)
 	genURL := func(path string) string {
-		return fmt.Sprintf("%s/%s", conf.ListenURL, path)
+		return fmt.Sprintf("%s/%s", conf.PublicURL, path)
 	}
 	return web.Ctx{
 		Session: sessionManager,

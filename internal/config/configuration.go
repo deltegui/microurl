@@ -15,6 +15,7 @@ type TLSConfig struct {
 
 type Configuration struct {
 	ListenURL  string    `configName:"url"`
+	PublicURL  string    `configName:"public"`
 	JWTKey     string    `configName:"jwt"`
 	SessionKey string    `configName:"session"`
 	DB         DBConfig  `configPrefix:"db"`
