@@ -26,7 +26,7 @@ func main() {
 	ctx := wire(conf)
 	router := createRouter()
 	mount(ctx, router)
-	log.Println("Listening on :3000")
+	log.Println("Listening on", conf.ListenURL)
 	// phoenix.FileServerStatic(router, "/static")
 	listen(router, conf)
 }

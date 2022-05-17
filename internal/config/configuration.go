@@ -1,24 +1,24 @@
 package config
 
-import "github.com/deltegui/configloader"
+import "github.com/deltegui/configloader/v2"
 
 type DBConfig struct {
-	Driver string `configName:"dbdriver"`
-	Conn   string `configName:"dbconn"`
+	Driver string `configName:"driver"`
+	Conn   string `configName:"conn"`
 }
 
 type TLSConfig struct {
-	CRT     string `configName:"tlscrt"`
-	KEY     string `configName:"tlskey"`
-	Enabled bool   `configName:"tlsenabled"`
+	CRT     string `configName:"crt"`
+	KEY     string `configName:"key"`
+	Enabled bool   `configName:"enabled"`
 }
 
 type Configuration struct {
-	ListenURL  string `paramName:"url"`
-	JWTKey     string `paramName:"jwt"`
-	SessionKey string `paramName:"session"`
-	DB         DBConfig
-	TLS        TLSConfig
+	ListenURL  string    `configName:"url"`
+	JWTKey     string    `configName:"jwt"`
+	SessionKey string    `configName:"session"`
+	DB         DBConfig  `configPrefix:"db"`
+	TLS        TLSConfig `configPrefix:"tls"`
 }
 
 func Load() Configuration {
