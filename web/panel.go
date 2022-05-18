@@ -15,7 +15,7 @@ const panelPath = "/panel"
 
 func CreatePanelRoutes(ctx Ctx) chi.Router {
 	r := chi.NewRouter()
-	r.Use(ctx.Auth.Authorize)
+	r.Use(ctx.SessionAuth.Authorize)
 	r.Get("/", panelHandler(ctx, views.Panel))
 	r.Post("/shorten", shortenHandler(ctx, views.Panel))
 	r.Post("/delete/{id}", deleteHandler(ctx, views.Panel))
@@ -94,7 +94,7 @@ func getAllUrls(w http.ResponseWriter, req *http.Request, ctx Ctx) (internal.Use
 func deleteHandler(ctx Ctx, render views.Render) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		present := PanelPresenter(w, req, render)
-		id, err := getURLID(req)
+		id, err := GetURLID(req)
 		if err != nil {
 			present(nil, internal.MalformedRequestErr)
 			return
@@ -113,7 +113,7 @@ func deleteHandler(ctx Ctx, render views.Render) http.HandlerFunc {
 func genQRHandler(ctx Ctx, render views.Render) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		present := PanelPresenter(w, req, render)
-		id, err := getURLID(req)
+		id, err := GetURLID(req)
 		if err != nil {
 			present(nil, internal.MalformedRequestErr)
 			return
@@ -125,7 +125,7 @@ func genQRHandler(ctx Ctx, render views.Render) http.HandlerFunc {
 	}
 }
 
-func getURLID(req *http.Request) (uint, error) {
+func GetURLID(req *http.Request) (uint, error) {
 	str := chi.URLParam(req, "id")
 	id, err := strconv.Atoi(str)
 	if err != nil {

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"microurl/api"
 	"microurl/internal"
 	"microurl/internal/config"
 	"microurl/internal/persistence"
@@ -29,6 +30,7 @@ func main() {
 	ctx := wire(conf)
 	router := createRouter()
 	mount(ctx, router)
+	mountAPI(ctx, router)
 	log.Println("Listening on :3000")
 	phoenix.FileServerStatic(router.(*chi.Mux), "/static")
 	listen(router, conf)
@@ -75,14 +77,15 @@ func wire(conf config.Configuration) web.Ctx {
 		return fmt.Sprintf("%s://%s/%s", method, conf.PublicURL, path)
 	}
 	return web.Ctx{
-		Session: sessionManager,
-		Auth:    web.NewSessionJWTAuth(tokenizer, redirectToRoot, sessionManager),
-		Login:   internal.NewLoginCase(val, userRepo, hasher, tokenizer),
-		Shorten: internal.NewShortenCase(val, userRepo, urlRepo, shortHasher, genURL),
-		Access:  internal.NewAccessCase(val, urlRepo, shortHasher, genURL),
-		AllURLs: internal.NewAllURLsCase(val, urlRepo, shortHasher, genURL),
-		Delete:  internal.NewDeleteCase(val, urlRepo, qrRepo),
-		GenQR:   internal.NewGenQRCase(val, urlRepo, qrRepo, shortHasher, genURL),
+		Session:     sessionManager,
+		SessionAuth: web.NewSessionJWTAuth(tokenizer, redirectToRoot, sessionManager),
+		HeaderAuth:  web.NewHeaderJWTAuth(tokenizer, phoenix.JSONPresenter),
+		Login:       internal.NewLoginCase(val, userRepo, hasher, tokenizer),
+		Shorten:     internal.NewShortenCase(val, userRepo, urlRepo, shortHasher, genURL),
+		Access:      internal.NewAccessCase(val, urlRepo, shortHasher, genURL),
+		AllURLs:     internal.NewAllURLsCase(val, urlRepo, shortHasher, genURL),
+		Delete:      internal.NewDeleteCase(val, urlRepo, qrRepo, genURL),
+		GenQR:       internal.NewGenQRCase(val, urlRepo, qrRepo, shortHasher, genURL),
 	}
 }
 
@@ -110,4 +113,13 @@ func mount(ctx web.Ctx, router chi.Router) {
 	router.Mount("/user", web.CreateUserRoutes(ctx))
 	router.Mount("/", web.CreateURLRoutes(ctx))
 	router.Mount("/panel", web.CreatePanelRoutes(ctx))
+}
+
+func mountAPI(ctx web.Ctx, router chi.Router) {
+	r := chi.NewRouter()
+	r.Use(api.EnableCors)
+	r.Use(api.OptionsCors)
+	r.Mount("/user", api.CreateUserRoutes(ctx))
+	r.Mount("/url", api.CreateURLRoutes(ctx))
+	router.Mount("/api", r)
 }

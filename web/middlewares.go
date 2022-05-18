@@ -77,7 +77,7 @@ type HeaderJWTAuth struct {
 	JWTAuth
 }
 
-func NewHeaderJWTAuth(tokenizer internal.Tokenizer, createPresenter PresenterCreator, manager session.Manager) HeaderJWTAuth {
+func NewHeaderJWTAuth(tokenizer internal.Tokenizer, createPresenter PresenterCreator) HeaderJWTAuth {
 	return HeaderJWTAuth{JWTAuth{tokenizer, createPresenter}}
 }
 

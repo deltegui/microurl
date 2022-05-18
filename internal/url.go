@@ -39,12 +39,12 @@ type ShortenRequest struct {
 }
 
 type URLResponse struct {
-	ID       uint
-	Name     string
-	Original string
-	URL      string
-	Times    int
-	QR       string
+	ID       uint   `json:"id"`
+	Name     string `json:"name"`
+	Original string `json:"original"`
+	URL      string `json:"url"`
+	Times    int    `json:"times"`
+	QR       string `json:"qr"`
 }
 
 func newURLResponse(url URL, shorten string, genURL URLGenerator) URLResponse {
@@ -138,7 +138,7 @@ type AllURLsRequest struct {
 }
 
 type AllURLsResponse struct {
-	URLs []URLResponse
+	URLs []URLResponse `json:"urls"`
 }
 
 type AllURLsCase struct {
@@ -158,7 +158,7 @@ func NewAllURLsCase(val Validator, urlRepo URLRepository, hasher Shortener, genU
 func (allCase AllURLsCase) Exec(raw UseCaseRequest) (UseCaseResponse, error) {
 	req := raw.(AllURLsRequest)
 	urls := allCase.urlRepository.GetAllForUser(req.User)
-	var res []URLResponse
+	res := []URLResponse{}
 	for _, url := range urls {
 		unwrapped := allCase.hasher.Shorten(int(url.ID))
 		res = append(res, newURLResponse(url, unwrapped, allCase.genURL))
@@ -173,12 +173,14 @@ type URLIDRequest struct {
 type DeleteCase struct {
 	urlRepository URLRepository
 	qrRepo        QRRepository
+	genURL        URLGenerator
 }
 
-func NewDeleteCase(val Validator, urlRepo URLRepository, qrRepo QRRepository) UseCase {
+func NewDeleteCase(val Validator, urlRepo URLRepository, qrRepo QRRepository, genURL URLGenerator) UseCase {
 	return Validate(DeleteCase{
 		urlRepository: urlRepo,
 		qrRepo:        qrRepo,
+		genURL:        genURL,
 	}, val)
 }
 
@@ -197,7 +199,7 @@ func (delCase DeleteCase) Exec(raw UseCaseRequest) (UseCaseResponse, error) {
 			log.Println("Cannot delete qr file for URL with ID:", url.ID)
 		}
 	}
-	return url, nil
+	return newURLResponse(url, "", delCase.genURL), nil
 }
 
 type GenQRCase struct {
@@ -235,5 +237,5 @@ func (qrCase GenQRCase) Exec(raw UseCaseRequest) (UseCaseResponse, error) {
 		qrCase.qrRepo.Delete(url)
 		return NoResponse, QRGenerationErr
 	}
-	return url, nil
+	return newURLResponse(url, short, qrCase.genURL), nil
 }
