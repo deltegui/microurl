@@ -7,11 +7,10 @@ import (
 )
 
 var commands = map[string]func(api){
-	"login":  login,
-	"all":    getAll,
-	"delete": delete,
-	"create": create,
-	"qr":     generateQR,
+	"all":    login(getAll),
+	"delete": login(delete),
+	"create": login(create),
+	"qr":     login(generateQR),
 }
 
 func errd(format string, args ...interface{}) {
@@ -24,20 +23,16 @@ func err(code int, format string, args ...interface{}) {
 }
 
 var (
-	service  string
-	command  string
-	name     string
-	value    string
-	username string
-	password string
-	id       uint
+	service string
+	command string
+	name    string
+	value   string
+	id      uint
 )
 
 func init() {
 	flag.StringVar(&service, "url", "", "Service URL.")
 	flag.StringVar(&command, "cmd", "", "Command to execute: login, all, delete, create, qr.")
-	flag.StringVar(&username, "u", "", "Your account name.")
-	flag.StringVar(&password, "p", "", "Your account password.")
 	flag.StringVar(&name, "n", "", "URL name")
 	flag.StringVar(&value, "v", "", "URL Value")
 	flag.UintVar(&id, "id", 0, "URL id")
@@ -49,19 +44,20 @@ func main() {
 	if !ok {
 		err(5, "Invalid command: %s\n", command)
 	}
-	tkn := ""
-	if !tokenDontExist() {
-		tkn = readToken()
-	}
-	api := api{service, tkn}
+	api := api{service, ""}
 	cmd(api)
 }
 
-func login(api api) {
-	if len(username) < 3 || len(password) < 3 {
-		err(2, "Username or password are not long enough (min 3 characters)\n")
+func login(next func(api)) func(api) {
+	return func(api api) {
+		username := os.Getenv("MURL_USER")
+		password := os.Getenv("MURL_PASS")
+		if len(username) < 3 || len(password) < 3 {
+			err(2, "Username or password are not long enough (min 3 characters). Remember to use env variables MURL_USER and MURL_PASS.\n")
+		}
+		api.login(username, password)
+		next(api)
 	}
-	saveToken(api.login(username, password))
 }
 
 func getAll(api api) {

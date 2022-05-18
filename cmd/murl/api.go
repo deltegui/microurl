@@ -24,7 +24,7 @@ func (api api) endpointWithID(path string, id uint) string {
 	return fmt.Sprintf("%s/api%s/%d", api.server, path, id)
 }
 
-func (api api) login(user, password string) string {
+func (api *api) login(user, password string) string {
 	payload := fmt.Sprintf("{\"name\": \"%s\", \"password\": \"%s\"}", user, password)
 	res, err := client.Post(api.endpoint("/user/login"), "application/json", strings.NewReader(payload))
 	if err != nil {
@@ -36,6 +36,7 @@ func (api api) login(user, password string) string {
 	if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
 		errd("Unkown error while decoding login response: %s\n", err.Error())
 	}
+	api.token = r.Token.Value
 	return r.Token.Value
 }
 
