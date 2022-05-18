@@ -22,6 +22,7 @@ type PresenterCreator func(w http.ResponseWriter, req *http.Request) phoenix.Pre
 type JWTAuth struct {
 	tokenizer       internal.Tokenizer
 	createPresenter func(w http.ResponseWriter, req *http.Request) phoenix.Present
+	notifyExpired   func(w http.ResponseWriter, req *http.Request)
 }
 
 func (authMiddle JWTAuth) createHandler(next http.Handler, getToken tokenGetter) http.Handler {
@@ -38,6 +39,7 @@ func (authMiddle JWTAuth) handleAndCheckToken(w http.ResponseWriter, req *http.R
 		return
 	}
 	if token.Expires.Before(time.Now()) {
+		authMiddle.notifyExpired(w, req)
 		present(nil, internal.ExpiredTokenErr)
 		return
 	}
@@ -52,7 +54,7 @@ type SessionJWTAuth struct {
 
 func NewSessionJWTAuth(tokenizer internal.Tokenizer, createPresenter PresenterCreator, manager session.Manager) SessionJWTAuth {
 	return SessionJWTAuth{
-		JWTAuth{tokenizer, createPresenter},
+		JWTAuth{tokenizer, createPresenter, manager.Reset},
 		manager,
 	}
 }
@@ -78,7 +80,7 @@ type HeaderJWTAuth struct {
 }
 
 func NewHeaderJWTAuth(tokenizer internal.Tokenizer, createPresenter PresenterCreator) HeaderJWTAuth {
-	return HeaderJWTAuth{JWTAuth{tokenizer, createPresenter}}
+	return HeaderJWTAuth{JWTAuth{tokenizer, createPresenter, func(w http.ResponseWriter, req *http.Request) {}}}
 }
 
 func (authMiddle HeaderJWTAuth) Authorize(next http.Handler) http.Handler {
