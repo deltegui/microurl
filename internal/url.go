@@ -1,6 +1,9 @@
 package internal
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 
 type QRRepository interface {
 	Save(url URL, shortened string) (string, error)
@@ -45,6 +48,16 @@ type URLResponse struct {
 	URL      string `json:"url"`
 	Times    int    `json:"times"`
 	QR       string `json:"qr"`
+}
+
+func (url URLResponse) Print() {
+	fmt.Println(
+		"ID:", url.ID,
+		"Name:", url.Name,
+		"URL:", url.Original,
+		"Shortened:", url.URL,
+		"Times accessed:", url.Times,
+		"QR:", url.QR)
 }
 
 func newURLResponse(url URL, shorten string, genURL URLGenerator) URLResponse {
